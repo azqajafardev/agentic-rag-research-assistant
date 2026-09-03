@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -216,3 +217,116 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+=======
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+backend/data/*.db
+backend/data/chroma/
+>>>>>>> 2e9e87b (chore: initialize EvidenceRAG project)
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.env
+.envrc
+
+# Packaging
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+MANIFEST
+*.manifest
+*.spec
+
+# Testing / Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache/
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+cover/
+
+# Logs / local databases
+*.log
+db.sqlite3
+db.sqlite3-journal
+backend/data/*.db
+
+# Application data
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+backend/data/chroma/
+
+# Jupyter
+.ipynb_checkpoints
+
+# IDEs / Editors
+.idea/
+.vscode/
+.spyderproject
+.spyproject
+.ropeproject
+
+# Type checkers / linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Temporary files
+tempCodeRunnerFile.py
+
+# Other tools
+.pdm-python
+.pdm-build/
+.pixi
+__pypackages__/
+celerybeat-schedule
+celerybeat.pid
+*.rdb
+*.aof
+*.pid
+mnesia/
+rabbitmq/
+rabbitmq-data/
+activemq-data/
+.scrapy/
+.webassets-cache
+/site
+docs/_build/
+target/
