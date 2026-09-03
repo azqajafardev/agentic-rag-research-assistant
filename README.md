@@ -1,779 +1,211 @@
-# agentic-rag-research-assistant
-An AI-powered Agentic RAG Research Assistant that answers questions from uploaded research papers using intelligent document retrieval, web search, and LLM-based reasoning with source citations.
+# EvidenceRAG
 
+**Evidence-based AI research assistant.** Upload research papers, ask questions, and get answers grounded in your documents - with page-level citations you can inspect, and an honest "I don't know" when the evidence isn't there.
 
-# 🤖 Agentic RAG Research Assistant
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.141-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-vector%20store-6C3EF4)
+![Tests](https://img.shields.io/badge/tests-35%20passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-> **An AI-powered research assistant that combines Retrieval-Augmented Generation (RAG), AI Agents, vector search, web search, and Large Language Models to provide accurate, context-aware answers with source citations.**
+`retrieval-augmented-generation` · `agentic-ai` · `generative-ai` · `llm` · `fastapi` · `chromadb` · `python` · `react` · `ai-research-assistant` · `semantic-search` · `machine-learning`
 
----
+## Overview
 
-## 📌 Overview
+EvidenceRAG is a full-stack Retrieval-Augmented Generation (RAG) application: FastAPI backend, ChromaDB vector store, local embeddings, Claude for grounded generation, and a React + Tailwind frontend. It's built to demonstrate real RAG engineering - not just an LLM API call wrapped in a chat box - with hallucination-resistant design as a first-class requirement, not an afterthought.
 
-The **Agentic RAG Research Assistant** is an AI-powered application designed to help researchers interact with research papers and documents using natural language.
+Read [docs/rag-explained.md](docs/rag-explained.md) for a plain-language walkthrough of the pipeline and the reasoning behind the key design decisions (why RAG, why ChromaDB, why page-aware chunks, how hallucination is reduced).
 
-Users can upload one or multiple PDF research papers and ask questions about their content. Instead of simply searching documents using a fixed RAG pipeline, the system uses an **AI Agent** to intelligently decide which information source should be used.
+## Features
 
-The agent can:
+- Multi-PDF upload with real-time processing status (uploaded → processing → indexed/failed)
+- Page-aware chunking that preserves document/page metadata all the way to the final citation
+- Local embeddings (no API key required) via ChromaDB's bundled ONNX MiniLM model
+- Semantic retrieval with a configurable similarity threshold and per-document scoping
+- **Structural no-evidence protection**: the LLM is never called when retrieval finds nothing above threshold - not a prompting convention, an actual code path
+- Citations built from real retrieved chunks before the LLM ever runs - the LLM cannot fabricate a citation
+- Conversation history with limited context passed to the LLM (never unbounded)
+- A professional, portfolio-quality React interface: dashboard, document management, chat workspace, evidence panel, conversation history
+- A lightweight, honest evaluation harness (real scores only - see [Evaluation](#evaluation))
+- Dockerized for one-command startup
 
-* 📚 Search uploaded research papers
-* 🌐 Search the web when external information is required
-* 📝 Summarize research content
-* 🔍 Retrieve relevant document sections
-* 🧠 Generate grounded answers using an LLM
-* 📄 Provide source and page-level citations
+## Architecture
 
-The main goal is to create a practical **Agentic AI + RAG system** that can assist researchers in understanding, searching, comparing, and summarizing technical documents.
-
----
-
-# 🎯 Problem Statement
-
-Researchers often need to read multiple long research papers to find specific information, compare methodologies, understand technical concepts, and summarize findings.
-
-Traditional document chatbots usually follow a fixed workflow:
-
-```text
-Question → Search Documents → Generate Answer
-```
-
-This approach does not intelligently decide whether the answer should come from the uploaded documents or from external sources.
-
-The proposed system improves this workflow by introducing an **AI Agent** that dynamically selects the most appropriate tool based on the user's question.
-
----
-
-# 💡 Proposed Solution
-
-The system combines:
-
-* **Retrieval-Augmented Generation (RAG)**
-* **AI Agent orchestration**
-* **Vector database**
-* **Semantic document search**
-* **Web search**
-* **LLM-based answer generation**
-* **Source-aware responses**
-
-The agent analyzes the user's question and chooses the appropriate information source before generating the final answer.
-
----
-
-# 🏗️ System Architecture
-
-```mermaid
-flowchart TD
-
-    A[👤 User] --> B[🎨 Streamlit Frontend]
-
-    B --> C[⚡ FastAPI Backend]
-
-    C --> D[🤖 LangGraph AI Agent]
-
-    D --> E{🔀 Which source is needed?}
-
-    E -->|📚 Uploaded Documents| F[Document Search Tool]
-    E -->|🌐 External / Latest Information| G[Web Search Tool]
-    E -->|📝 Long Content / Summary| H[Summarization Tool]
-
-    F --> I[(🗄️ ChromaDB Vector Database)]
-    I --> J[🔍 Relevant Document Chunks]
-
-    G --> K[🌐 Web Results]
-
-    H --> L[📄 Retrieved Research Content]
-
-    J --> M[🧠 LLM]
-    K --> M
-    L --> M
-
-    M --> N[✅ Grounded Answer]
-
-    N --> O[📚 Sources + Page Numbers]
-
-    O --> B
-```
-
----
-
-# 🔄 How the System Works
-
-The complete workflow consists of two major pipelines:
-
-## 1. 📄 Document Processing Pipeline
-
-When a user uploads a PDF:
-
-```mermaid
-flowchart LR
-
-    A[📄 PDF Upload] --> B[📖 Text Extraction]
-    B --> C[✂️ Text Chunking]
-    C --> D[🧮 Generate Embeddings]
-    D --> E[(🗄️ ChromaDB)]
-    E --> F[🔍 Ready for Retrieval]
-```
-
-### Step-by-step
-
-**Step 1 — PDF Upload**
-
-The user uploads one or multiple research papers through the frontend.
-
-**Step 2 — Text Extraction**
-
-The backend extracts text from the PDF while preserving page information.
-
-**Step 3 — Chunking**
-
-Long documents are divided into smaller meaningful chunks.
-
-**Step 4 — Embeddings**
-
-Each chunk is converted into a numerical vector representation using an embedding model.
-
-**Step 5 — Vector Storage**
-
-The embeddings and their metadata are stored in ChromaDB.
-
-Metadata includes:
+See [docs/architecture.md](docs/architecture.md) for the full breakdown (document lifecycle, chat flow, no-evidence protection, vector storage, conversation flow).
 
 ```text
-filename
-page_number
-chunk_id
+React (Vite + Tailwind) → FastAPI → Document Processing → Chunking
+  → Embeddings (local ONNX MiniLM) → ChromaDB → Retrieval → Reranking (off)
+  → Context Builder → Claude (Anthropic) → Citations → back to React
 ```
 
-This allows the system to identify exactly where retrieved information came from.
+## Tech Stack
 
----
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, Tailwind CSS v4, React Router, Axios, lucide-react |
+| Backend | Python 3.13, FastAPI, Uvicorn, Pydantic |
+| Document processing | PyMuPDF |
+| Embeddings | ChromaDB's local ONNX MiniLM (`all-MiniLM-L6-v2`) - no API key |
+| Vector store | ChromaDB (persistent, cosine similarity) |
+| LLM | Anthropic Claude (official `anthropic` SDK) |
+| App database | SQLite |
+| Testing | pytest, FastAPI `TestClient` |
+| Deployment | Docker, Docker Compose |
 
-# 🧠 Agentic Question-Answering Workflow
-
-When the user asks a question:
-
-```mermaid
-flowchart TD
-
-    A[💬 User Question] --> B[🤖 AI Agent]
-
-    B --> C{Analyze Question}
-
-    C -->|Information exists in PDFs| D[📚 Document Search]
-    C -->|Latest / External Information| E[🌐 Web Search]
-    C -->|Long Content / Summary| F[📝 Summarizer]
-
-    D --> G[🔍 Retrieve Relevant Chunks]
-    E --> H[🌐 Retrieve Web Results]
-    F --> I[📄 Process Retrieved Content]
-
-    G --> J[🧠 LLM]
-    H --> J
-    I --> J
-
-    J --> K[✅ Generate Grounded Answer]
-
-    K --> L[📚 Add Sources]
-    L --> M[👤 Display Response]
-```
-
----
-
-# 🔀 Agent Decision Making
-
-The most important part of this project is the **AI Agent**.
-
-The agent does not blindly use the same tool for every question.
-
-### Example 1 — Document Question
-
-**User:**
-
-> What are the advantages of RAG discussed in the uploaded paper?
-
-**Agent:**
+## RAG Pipeline
 
 ```text
-Question
-   ↓
-Document Search
-   ↓
-ChromaDB
-   ↓
-Relevant Chunks
-   ↓
-LLM
-   ↓
-Answer + Page Citation
+Upload → Validate → Store → Extract (PyMuPDF, page-by-page)
+  → Clean text → Chunk (page-aware, ~800 words, 120 overlap)
+  → Embed (local MiniLM) → Index (ChromaDB, deterministic chunk ids)
+
+Question → Embed → Vector search (Top-K) → Similarity threshold
+  → [below threshold: fixed no-evidence response, LLM never called]
+  → Rerank (pass-through by default) → Build citations from real chunks
+  → Build bounded context → Grounded LLM call → Persist → Respond
 ```
 
----
+## Screenshots
 
-### Example 2 — Latest Information
+Not yet captured in this checkout - see [screenshots/README.md](screenshots/README.md)
+for the exact list of screens to capture and where to drop them before
+publishing (Dashboard, Documents, Upload, New Chat, Grounded Answer,
+Sources, No-Evidence, Conversation History).
 
-**User:**
+## Demo
 
-> What are the latest developments in RAG?
+A concrete walkthrough to run live (or narrate from screenshots) in an interview:
 
-**Agent:**
+1. Upload a research PDF and watch its status move `uploaded → processing → indexed`
+2. Open **New Chat**, scope it to the uploaded paper
+3. Ask a question the paper actually answers - get a grounded answer
+4. Open the evidence panel - inspect the page-level citations behind that answer
+5. Ask a follow-up question in the same conversation - it uses the prior turns as context
+6. Ask something the paper doesn't cover - see the no-evidence response (`grounded: false`, no sources, no LLM call made)
+7. Check **Conversation History** - both exchanges are there
+8. Delete the document - its vectors are removed from ChromaDB along with its record
 
-```text
-Question
-   ↓
-Web Search
-   ↓
-External Results
-   ↓
-LLM
-   ↓
-Answer + Web Sources
-```
+## Installation
 
----
-
-### Example 3 — Research Comparison
-
-**User:**
-
-> Compare the approaches used in these two papers.
-
-**Agent:**
-
-```text
-Question
-   ↓
-Document Search
-   ↓
-Paper 1 + Paper 2
-   ↓
-Relevant Chunks
-   ↓
-Summarization / Analysis
-   ↓
-LLM
-   ↓
-Comparison
-```
-
----
-
-# 📚 What is RAG?
-
-**Retrieval-Augmented Generation (RAG)** is a technique that allows an LLM to retrieve relevant information from an external knowledge source before generating an answer.
-
-Instead of relying only on the model's internal knowledge:
-
-```text
-User Question
-      ↓
-Retrieve Relevant Information
-      ↓
-Provide Context to LLM
-      ↓
-Generate Grounded Answer
-```
-
-In this project, the external knowledge source is primarily the user's uploaded research papers stored in **ChromaDB**.
-
----
-
-# 🤖 What Makes This Project Agentic?
-
-A traditional RAG system generally follows:
-
-```text
-Question
-   ↓
-Retriever
-   ↓
-LLM
-   ↓
-Answer
-```
-
-This project introduces an AI Agent:
-
-```text
-Question
-   ↓
-AI Agent
-   ↓
-Decide What Tool to Use
-   ↓
-┌──────────────┬──────────────┬──────────────┐
-│              │              │
-RAG Search   Web Search   Summarization
-│              │              │
-└──────────────┴──────────────┴──────────────┘
-                    ↓
-                   LLM
-                    ↓
-              Final Answer
-```
-
-This makes the system more flexible and capable of handling different types of research questions.
-
----
-
-# ✨ Key Features
-
-* 📄 **Multiple PDF Upload**
-* 📚 **Research Paper Q&A**
-* 🔍 **Semantic Vector Search**
-* 🤖 **Agentic RAG**
-* 🧠 **LangGraph Agent**
-* 🌐 **Web Search**
-* 📝 **Document Summarization**
-* 📊 **Multi-document Comparison**
-* 📚 **Source Citations**
-* 📄 **Page-level References**
-* 💬 **Conversational Interface**
-* ⚡ **FastAPI Backend**
-* 🎨 **Streamlit Frontend**
-* 🗄️ **ChromaDB Vector Database**
-* 🧪 **Testing & Evaluation**
-* 📝 **Application Logging**
-* 🔐 **Environment-based API Configuration**
-
----
-
-# 🛠️ Technology Stack
-
-| Category             | Technology                    |
-| -------------------- | ----------------------------- |
-| Programming Language | Python                        |
-| Frontend             | Streamlit                     |
-| Backend              | FastAPI                       |
-| Agent Framework      | LangGraph                     |
-| LLM Framework        | LangChain                     |
-| Vector Database      | ChromaDB                      |
-| PDF Processing       | PyPDF                         |
-| Embeddings           | HuggingFace / Embedding Model |
-| LLM                  | OpenAI API                    |
-| Web Search           | Web Search Tool/API           |
-| Testing              | Pytest                        |
-| Configuration        | Python-dotenv                 |
-
----
-
-# 📁 Project Structure
-
-```text
-agentic-rag-research-assistant/
-│
-├── backend/
-│   ├── main.py
-│   ├── config.py
-│   │
-│   ├── api/
-│   │   ├── upload.py
-│   │   └── chat.py
-│   │
-│   ├── agent/
-│   │   ├── state.py
-│   │   ├── graph.py
-│   │   ├── tools.py
-│   │   └── prompts.py
-│   │
-│   ├── rag/
-│   │   ├── loader.py
-│   │   ├── chunker.py
-│   │   ├── embeddings.py
-│   │   └── retriever.py
-│   │
-│   └── services/
-│       └── llm.py
-│
-├── frontend/
-│   └── app.py
-│
-├── evaluation/
-│   ├── questions.json
-│   ├── evaluate.py
-│   └── README.md
-│
-├── tests/
-│   ├── test_health.py
-│   ├── test_upload.py
-│   ├── test_retrieval.py
-│   └── test_agent.py
-│
-├── screenshots/
-│   ├── dashboard.png
-│   ├── documents.png
-│   ├── web-search.png
-│   ├── source-preview.png
-│   └── system-status.png
-│
-├── data/
-│   └── .gitkeep
-│
-├── .env.example
-├── .gitignore
-├── requirements.txt
-├── README.md
-└── LICENSE
-```
-
----
-
-# 🖥️ Frontend
-
-The application provides a clean research-focused interface built with Streamlit.
-
-### Main Screens
-
-### 🏠 Dashboard / Chat
-
-Users can ask questions and receive AI-generated responses.
-
-### 📚 Documents
-
-Users can view uploaded research papers and their processing status.
-
-### 📤 Upload Documents
-
-Users can upload one or multiple PDF files.
-
-### 🌐 Agentic Web Search
-
-When the agent determines that external information is required, web search results are displayed.
-
-### 📄 Source Preview
-
-Users can identify the document and page from which the answer was retrieved.
-
-### ⚙️ Settings
-
-Users can configure available model and retrieval settings.
-
-### 📊 System Status
-
-The application can display the status of:
-
-* Backend API
-* ChromaDB
-* LLM service
-* AI Agent
-* Web Search
-
----
-
-# 🔌 Backend API
-
-The FastAPI backend exposes endpoints for document processing and question answering.
-
-## Health Check
-
-```text
-GET /health
-```
-
-Checks whether the backend is running.
-
-## Upload PDF
-
-```text
-POST /upload
-```
-
-Uploads and indexes research papers.
-
-## Ask Question
-
-```text
-POST /chat
-```
-
-Example request:
-
-```json
-{
-  "question": "What are the main advantages of RAG?"
-}
-```
-
-Example response:
-
-```json
-{
-  "answer": "RAG improves...",
-  "tool_used": "document_search",
-  "sources": [
-    {
-      "filename": "RAG_Survey.pdf",
-      "page": 4
-    }
-  ]
-}
-```
-
----
-
-# 🔐 Environment Variables
-
-Create a `.env` file:
-
-```text
-OPENAI_API_KEY=your_api_key_here
-MODEL_NAME=your_model_name
-BACKEND_URL=http://localhost:8000
-```
-
-> ⚠️ Never commit `.env` or real API keys to GitHub.
-
-Use `.env.example` as a template.
-
----
-
-# ⚙️ Installation
-
-## 1. Clone the Repository
+Requires Python 3.12+ and Node.js 20+.
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
-
+git clone <this-repo>
 cd agentic-rag-research-assistant
 ```
 
-## 2. Create Virtual Environment
+## Environment Setup
 
-### Windows
+**Backend** (`backend/.env`, copy from `backend/.env.example`):
 
-```bash
-python -m venv venv
-
-venv\Scripts\activate
+```env
+LLM_PROVIDER=groq                    # or anthropic
+LLM_MODEL=openai/gpt-oss-20b         # or claude-opus-5 for anthropic
+LLM_API_KEY=your-provider-api-key    # required for grounded answers
+FRONTEND_URL=http://localhost:5173
 ```
 
-### Linux / macOS
+Everything else has a sensible default (see `backend/.env.example` for the full list: `TOP_K`, `SIMILARITY_THRESHOLD`, `MAX_UPLOAD_SIZE_MB`, etc.). No key is required for embeddings, uploads, retrieval, or the no-evidence path - only `/api/chat`'s grounded-answer path needs `LLM_API_KEY`.
 
-```bash
-python3 -m venv venv
+### LLM provider
 
-source venv/bin/activate
+Two providers are supported, selected by `LLM_PROVIDER` - the rest of the app (retrieval, citations, context building, chat) is identical either way, since both sit behind the same `LLMService.generate()` interface:
+
+- **`groq`** (recommended for development) - free tier, no cost. Get a key at [console.groq.com/keys](https://console.groq.com/keys). Uses Groq's OpenAI-compatible REST API directly over `httpx` - no extra dependency.
+- **`anthropic`** (used in production) - paid, via the official `anthropic` SDK.
+
+`LLM_API_KEY` always comes from `.env` (or the shell environment) - it is never hardcoded and `backend/.env` is git-ignored. Never commit a real key to `backend/.env.example` or anywhere else in the repo.
+
+**Frontend** (`frontend/.env`, copy from `frontend/.env.example`):
+
+```env
+VITE_API_URL=http://127.0.0.1:8000/api
 ```
 
-## 3. Install Dependencies
+## Local Run Instructions
 
+**Backend**
 ```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+# source .venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
+uvicorn app.main:app --reload
 ```
+Backend: http://127.0.0.1:8000 · Swagger: http://127.0.0.1:8000/docs
 
-## 4. Configure Environment
+**Frontend**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Frontend: http://localhost:5173
 
-Create `.env` from `.env.example` and add your API credentials.
-
-## 5. Start Backend
+## Docker Run Instructions
 
 ```bash
-uvicorn backend.main:app --reload
+cp .env.example .env      # fill in LLM_API_KEY
+docker compose up --build
 ```
+Backend: http://localhost:8000 · Frontend: http://localhost:5173. Document metadata, uploaded PDFs, and ChromaDB data persist in the `backend_data` named volume across restarts.
 
-Backend:
+> The Docker configuration was written and reviewed carefully but could not be run in the environment this project was built in (no Docker available there) - verify with `docker compose up --build` before relying on it, and see the project's implementation notes for what was and wasn't live-tested.
 
-```text
-http://localhost:8000
-```
-
-Swagger API documentation:
-
-```text
-http://localhost:8000/docs
-```
-
-## 6. Start Frontend
-
-Open another terminal:
+## Testing
 
 ```bash
-streamlit run frontend/app.py
+cd backend
+pytest -v
 ```
+35 tests covering document validation, page-aware chunking, retrieval/threshold/citation behavior, no-evidence protection, conversation handling, and the full API surface. External embedding/LLM calls are mocked with deterministic fakes - no paid API access or internet required to run the suite.
 
-The application will open in your browser.
-
----
-
-# 🧪 Testing
-
-The project includes tests for important components.
-
-Run:
+## Evaluation
 
 ```bash
-pytest
+backend\.venv\Scripts\python.exe evaluation\run_evaluation.py    # Windows
+backend/.venv/bin/python evaluation/run_evaluation.py            # macOS/Linux
 ```
 
-Testing covers:
+Self-contained (builds its own isolated document store, no server needed). Measures retrieval relevance, citation correctness, groundedness, and no-evidence behavior against a fixed 8-question dataset - see [evaluation/README.md](evaluation/README.md) for details and exactly what is/isn't measured without an `LLM_API_KEY` configured.
 
-* Backend health
-* PDF upload
-* Document retrieval
-* Agent workflow
-* API responses
+## API Documentation
 
----
+See [docs/api.md](docs/api.md) for every endpoint, request/response shape, and error code. Live interactive docs at `/docs` while the backend is running.
 
-# 📊 Evaluation
+## Security
 
-A small evaluation dataset is included to assess the system.
+- No secrets in source: `LLM_API_KEY` and all other config come from `.env` files, which are git-ignored (`backend/.env`, `frontend/.env`); only `.env.example` templates are committed.
+- Runtime data (`backend/data/uploads/*`, SQLite DB, ChromaDB directory) is git-ignored - only the app code and empty directory placeholders are tracked.
+- File upload validation: content-type/extension check, empty-file rejection, size cap (`MAX_UPLOAD_SIZE_MB`), and a real PDF-parse check (not just the extension) before a file is trusted.
+- Question length is capped (`MAX_QUESTION_LENGTH`) and conversation history sent to the LLM is bounded (`CONVERSATION_HISTORY_LIMIT`) - no unbounded input reaches the model.
+- CORS is restricted to a single configured origin (`FRONTEND_URL`), not `*`.
+- Errors return a stable `{error: {code, message}}` shape; internal exception details and stack traces are never leaked to the client (see [docs/api.md](docs/api.md) for the full error-code table).
+- The Docker image runs the backend as a non-root user.
 
-The evaluation focuses on:
+## Limitations
 
-* Retrieval relevance
-* Answer correctness
-* Citation accuracy
-* Agent tool selection
+Said plainly, so nothing here is oversold:
 
-Example evaluation flow:
+- Reranking is implemented as a pass-through hook (`RerankerService`) but not wired to a real cross-encoder model - it exists so one can be dropped in without touching `chat_service`.
+- Conversation history is client-side (`localStorage`) rather than backend-queryable, because no conversation-list endpoint exists yet - documented in [docs/architecture.md](docs/architecture.md#conversation-flow).
+- Chunking is a fixed word-window, not semantic/section-aware - a chunk boundary can still fall mid-sentence within a page.
+- Single-user by design - no auth, no multi-tenancy.
+- Chat responses are not streamed - the full answer returns in one response.
+- The Docker setup was written and reviewed but not live-verified in the environment this project was built in (no Docker there) - verify with `docker compose up --build` before relying on it in production.
 
-```text
-Question
-   ↓
-Agent Decision
-   ↓
-Selected Tool
-   ↓
-Retrieved Context
-   ↓
-Generated Answer
-   ↓
-Evaluation
-```
+## Future Improvements
 
----
+- Cross-encoder reranking (the `RerankerService` hook already exists; disabled by default)
+- Semantic/section-aware chunking beyond the current word-window approach
+- Hybrid BM25 + vector search
+- A backend endpoint for listing/reading past conversations (currently client-side only, since none exists yet)
+- Streaming chat responses
+- Multi-user auth and workspaces
 
-# 💬 Example Queries
+## License
 
-### Document Questions
-
-> What is the main contribution of this paper?
-
-> What methodology was used in this research?
-
-> What are the limitations mentioned by the authors?
-
-### Summarization
-
-> Summarize this research paper.
-
-> Explain the methodology in simple terms.
-
-### Comparison
-
-> Compare the approaches used in these two papers.
-
-> Which method performs better according to the papers?
-
-### Web Search
-
-> What are the latest developments in Agentic RAG?
-
-> What are the current challenges in RAG systems?
-
----
-
-
-# 🔒 Security Considerations
-
-* API keys are stored using environment variables.
-* `.env` is excluded from version control.
-* Sensitive credentials are never included in logs.
-* User documents should be handled carefully.
-* The application avoids exposing internal agent reasoning.
-
----
-
-# ⚠️ Limitations
-
-The current version has some limitations:
-
-* PDF quality can affect text extraction.
-* Scanned/image-only PDFs may require OCR.
-* Retrieval quality depends on chunking and embedding quality.
-* Web search results depend on the configured search provider.
-* LLM responses should still be reviewed for critical research use.
-
----
-
-# 🔮 Future Improvements
-
-Potential future enhancements include:
-
-* 🔄 Advanced document reranking
-* 🧠 Multi-agent research workflows
-* 📑 Automatic research report generation
-* 🔍 Citation verification
-* 💾 Persistent conversation memory
-* 🌍 Multilingual document support
-* 📊 Advanced RAG evaluation
-* ☁️ Cloud deployment
-* 🔐 User authentication
-* 📚 Automatic literature review generation
-
----
-
-# 🎓 Learning Outcomes
-
-This project demonstrates practical experience with:
-
-* Retrieval-Augmented Generation
-* Agentic AI
-* LLM application development
-* Vector databases
-* Semantic search
-* LangChain
-* LangGraph
-* FastAPI
-* Streamlit
-* Prompt engineering
-* API integration
-* Document processing
-* AI system evaluation
-
----
-
-# 🤝 Contributing
-
-Contributions, suggestions, and improvements are welcome.
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Commit your changes
-5. Open a Pull Request
-
----
-
-# 📄 License
-
-This project is available under the MIT License.
-
----
-
-# 👩‍💻 Author
-
-## Azqa Jafar
-
-**AI Developer | Software Engineering**
-
-Interested in:
-
-* 🤖 Artificial Intelligence
-* 🧠 Generative AI
-* 🔗 RAG Systems
-* 🧩 AI Agents
-* 📊 Machine Learning
-* 💻 LLM Applications
-
----
-
-## ⭐ Project Highlights
-
-> **Agentic AI + RAG + Vector Database + Web Search + LLM + FastAPI + Streamlit**
-
-This project demonstrates how an AI agent can intelligently select information sources and generate grounded research answers with relevant citations.
-
-<img width="1536" height="1024" alt="d9e9ffd3-877c-4781-9f2f-2bb465ae7aa8" src="https://github.com/user-attachments/assets/2e62bfbd-d9ef-45e6-a905-f4fccf539f58" />
-
-
+MIT
