@@ -199,6 +199,10 @@ Said plainly, so nothing here is oversold:
 - Streaming chat responses
 - Multi-user auth and workspaces
 
+## Acknowledgments
+
+Built with the assistance of [Claude Code](https://claude.com/claude-code) for implementation, testing, and documentation, under my direction and review.
+
 ## License
 
 MIT
