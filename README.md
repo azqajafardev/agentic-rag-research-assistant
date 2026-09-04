@@ -67,13 +67,6 @@ Question → Embed → Vector search (Top-K) → Similarity threshold
   → Build bounded context → Grounded LLM call → Persist → Respond
 ```
 
-## Screenshots
-
-Not yet captured in this checkout - see [screenshots/README.md](screenshots/README.md)
-for the exact list of screens to capture and where to drop them before
-publishing (Dashboard, Documents, Upload, New Chat, Grounded Answer,
-Sources, No-Evidence, Conversation History).
-
 ## Demo
 
 A concrete walkthrough to run live (or narrate from screenshots) in an interview:
